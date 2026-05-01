@@ -13,7 +13,7 @@ use tracing::{error, info};
 
 mod openscad;
 
-use openscad::{OpenSCADManager, DesignMetadata, ParameterDef};
+use openscad::{DesignMetadata, OpenSCADManager, ParameterDef};
 
 #[derive(Clone)]
 struct OpenSCADMcpServer {
@@ -55,12 +55,12 @@ impl ServerHandler for OpenSCADMcpServer {
         }
     }
 
-    fn list_tools(
+    async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
-        async {
+    ) -> Result<ListToolsResult, ErrorData> {
+        {
             Ok(ListToolsResult {
                 tools: vec![
                     Self::make_tool(
@@ -178,21 +178,23 @@ impl ServerHandler for OpenSCADMcpServer {
         }
     }
 
-    fn call_tool(
+    async fn call_tool(
         &self,
         request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, ErrorData>> + Send + '_ {
-        async move {
+    ) -> Result<CallToolResult, ErrorData> {
+        {
             let args = request.arguments.unwrap_or_default();
             let manager = self.manager.lock().await;
 
             match request.name.as_ref() {
                 "write_scad" => {
-                    let filename = args
-                        .get("filename")
-                        .and_then(|v| v.as_str())
-                        .ok_or_else(|| ErrorData::invalid_params("Missing filename parameter", None))?;
+                    let filename =
+                        args.get("filename")
+                            .and_then(|v| v.as_str())
+                            .ok_or_else(|| {
+                                ErrorData::invalid_params("Missing filename parameter", None)
+                            })?;
                     let code = args
                         .get("code")
                         .and_then(|v| v.as_str())
@@ -208,7 +210,8 @@ impl ServerHandler for OpenSCADMcpServer {
                                     ];
                                     for png_path in &png_paths {
                                         if let Ok(bytes) = fs::read(png_path).await {
-                                            let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                                            let encoded = base64::engine::general_purpose::STANDARD
+                                                .encode(&bytes);
                                             contents.push(Content::image(encoded, "image/png"));
                                         }
                                     }
@@ -217,23 +220,28 @@ impl ServerHandler for OpenSCADMcpServer {
                                 Err(e) => {
                                     error!("Preview render failed: {}", e);
                                     Ok(CallToolResult::success(vec![Content::text(format!(
-                                        "Wrote {} (preview unavailable: {e})", path.display()
+                                        "Wrote {} (preview unavailable: {e})",
+                                        path.display()
                                     ))]))
                                 }
                             }
                         }
                         Err(e) => {
                             error!("Failed to write SCAD file: {}", e);
-                            Ok(CallToolResult::error(vec![Content::text(format!("Error: {e}"))]))
+                            Ok(CallToolResult::error(vec![Content::text(format!(
+                                "Error: {e}"
+                            ))]))
                         }
                     }
                 }
 
                 "render_preview" => {
-                    let filename = args
-                        .get("filename")
-                        .and_then(|v| v.as_str())
-                        .ok_or_else(|| ErrorData::invalid_params("Missing filename parameter", None))?;
+                    let filename =
+                        args.get("filename")
+                            .and_then(|v| v.as_str())
+                            .ok_or_else(|| {
+                                ErrorData::invalid_params("Missing filename parameter", None)
+                            })?;
 
                     match manager.open_in_gui(filename).await {
                         Ok(path) => {
@@ -253,14 +261,18 @@ impl ServerHandler for OpenSCADMcpServer {
                 }
 
                 "export_stl" => {
-                    let filename = args
-                        .get("filename")
-                        .and_then(|v| v.as_str())
-                        .ok_or_else(|| ErrorData::invalid_params("Missing filename parameter", None))?;
+                    let filename =
+                        args.get("filename")
+                            .and_then(|v| v.as_str())
+                            .ok_or_else(|| {
+                                ErrorData::invalid_params("Missing filename parameter", None)
+                            })?;
                     let output_name = args
                         .get("output_name")
                         .and_then(|v| v.as_str())
-                        .ok_or_else(|| ErrorData::invalid_params("Missing output_name parameter", None))?;
+                        .ok_or_else(|| {
+                            ErrorData::invalid_params("Missing output_name parameter", None)
+                        })?;
 
                     match manager.export_stl(filename, output_name).await {
                         Ok(path) => {
@@ -311,7 +323,9 @@ impl ServerHandler for OpenSCADMcpServer {
                     let suggestions = args
                         .get("suggested_modifications")
                         .and_then(|v| v.as_array())
-                        .ok_or_else(|| ErrorData::invalid_params("Missing suggested_modifications", None))?;
+                        .ok_or_else(|| {
+                            ErrorData::invalid_params("Missing suggested_modifications", None)
+                        })?;
 
                     let params: Result<Vec<ParameterDef>, _> = parameters
                         .iter()
@@ -370,22 +384,26 @@ impl ServerHandler for OpenSCADMcpServer {
                                 .iter()
                                 .map(|p| {
                                     let range = match (p.min, p.max) {
-                                        (Some(min), Some(max)) => format!(" (range: {}-{})", min, max),
+                                        (Some(min), Some(max)) => {
+                                            format!(" (range: {}-{})", min, max)
+                                        }
                                         _ => String::new(),
                                     };
-                                    format!("  - {}: {}{}{}",
+                                    format!(
+                                        "  - {}: {}{}{}",
                                         p.name,
                                         p.param_type,
                                         range,
-                                        p.default.as_ref().map(|d| format!(" [default: {}]", d)).unwrap_or_default()
+                                        p.default
+                                            .as_ref()
+                                            .map(|d| format!(" [default: {}]", d))
+                                            .unwrap_or_default()
                                     )
                                 })
                                 .collect::<Vec<_>>()
                                 .join("\n");
 
-                            let suggestions_str = metadata
-                                .suggested_modifications
-                                .join("\n  - ");
+                            let suggestions_str = metadata.suggested_modifications.join("\n  - ");
 
                             let response = format!(
                                 "Design: {}\n\n{}\n\nParameters:\n{}\n\nSuggested modifications:\n  - {}",

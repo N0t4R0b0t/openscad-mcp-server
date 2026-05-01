@@ -63,15 +63,22 @@ impl OpenSCADManager {
         Ok(scad_file)
     }
 
-    async fn render_angle(&self, scad_file: &PathBuf, png_file: &PathBuf, camera: &str) -> Result<()> {
+    async fn render_angle(
+        &self,
+        scad_file: &PathBuf,
+        png_file: &PathBuf,
+        camera: &str,
+    ) -> Result<()> {
         let bin = Self::openscad_bin()?;
         let output = Command::new("xvfb-run")
             .arg("-a")
             .arg(bin)
             .arg("--autocenter")
             .arg("--viewall")
-            .arg("--camera").arg(camera)
-            .arg("-o").arg(png_file)
+            .arg("--camera")
+            .arg(camera)
+            .arg("-o")
+            .arg(png_file)
             .arg(scad_file)
             .output()
             .await?;
@@ -95,10 +102,10 @@ impl OpenSCADManager {
 
         let stem = Self::normalize_filename(filename);
         let angles = [
-            ("0,0,0,55,0,25,1",  "iso"),
-            ("0,0,0,90,0,0,1",   "front"),
-            ("0,0,0,0,0,0,1",    "top"),
-            ("0,0,0,55,0,90,1",  "right"),
+            ("0,0,0,55,0,25,1", "iso"),
+            ("0,0,0,90,0,0,1", "front"),
+            ("0,0,0,0,0,0,1", "top"),
+            ("0,0,0,55,0,90,1", "right"),
             ("0,0,0,55,0,180,1", "back"),
             ("0,0,0,30,0,315,1", "top_right"),
             ("0,0,0,30,0,135,1", "top_left"),
@@ -106,7 +113,9 @@ impl OpenSCADManager {
 
         let mut paths = Vec::new();
         for (camera, label) in &angles {
-            let png = self.resolve_path(&format!("{}_preview_{}", stem, label), "png").await?;
+            let png = self
+                .resolve_path(&format!("{}_preview_{}", stem, label), "png")
+                .await?;
             if let Err(e) = self.render_angle(&scad_file, &png, camera).await {
                 eprintln!("Warning: render angle {} failed: {}", label, e);
             } else {
@@ -146,7 +155,9 @@ impl OpenSCADManager {
             Ok(status) => {
                 let stderr = if let Some(mut s) = child.stderr.take() {
                     let mut buf = Vec::new();
-                    tokio::io::AsyncReadExt::read_to_end(&mut s, &mut buf).await.ok();
+                    tokio::io::AsyncReadExt::read_to_end(&mut s, &mut buf)
+                        .await
+                        .ok();
                     String::from_utf8_lossy(&buf).trim().to_string()
                 } else {
                     String::new()

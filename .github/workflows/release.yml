@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Snapshot label (e.g. snapshot-2026-05-01 or v1.0.1)'
+        required: true
+        default: 'snapshot'
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || startsWith(github.ref, 'refs/tags/') && github.ref_name || format('snapshot-{0}', github.sha) }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: openscad-mcp-server
+            archive_base: openscad-mcp-server-linux-x86_64
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: openscad-mcp-server
+            archive_base: openscad-mcp-server-macos-x86_64
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: openscad-mcp-server
+            archive_base: openscad-mcp-server-macos-aarch64
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: openscad-mcp-server.exe
+            archive_base: openscad-mcp-server-windows-x86_64
+            archive_ext: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          tar -czf ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} -C target/${{ matrix.target }}/release ${{ matrix.artifact }}
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.artifact }} -DestinationPath ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }}
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} s3://${{ secrets.R2_BUCKET_NAME }}/${{ env.RELEASE_VERSION }}/${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          body: |
+            ## Downloads
+
+            | Platform | Link |
+            |----------|------|
+            | Linux x86_64 | [openscad-mcp-server-linux-x86_64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-linux-x86_64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | macOS x86_64 | [openscad-mcp-server-macos-x86_64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-x86_64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | macOS Apple Silicon | [openscad-mcp-server-macos-aarch64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-aarch64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | Windows x86_64 | [openscad-mcp-server-windows-x86_64-${{ env.RELEASE_VERSION }}.zip](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-windows-x86_64-${{ env.RELEASE_VERSION }}.zip) |
+
+            > Artifacts are hosted on Cloudflare R2.
+          generate_release_notes: true
