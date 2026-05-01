@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, ci/r2-release-workflow ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 

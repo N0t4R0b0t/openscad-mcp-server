@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-    branches: [ ci/r2-release-workflow ]
   workflow_dispatch:
     inputs:
       version:
