@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "openscad": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/target/release/openscad-mcp-server",
+      "args": [],
+      "description": "OpenSCAD MCP server for parametric 3D modeling",
+      "sandboxEnabled": false
+    }
+  }
+}

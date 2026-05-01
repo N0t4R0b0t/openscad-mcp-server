@@ -1,0 +1,34 @@
+[package]
+name = "openscad-mcp-server"
+version = "0.2.0"
+edition = "2021"
+authors = ["Ricardo Salvador <contact@rsalvador.dev>"]
+description = "A Model Context Protocol (MCP) server for local OpenSCAD 3D model generation"
+license = "AGPL-3.0-only"
+readme = "README.md"
+repository = "https://github.com/N0t4R0b0t/openscad-mcp-server.git"
+keywords = ["mcp", "openscad", "3d-printing", "model-context-protocol"]
+categories = ["development-tools", "command-line-utilities"]
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+rmcp = { version = "0.16", features = ["server", "transport-io"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+which = "5.0"
+base64 = "0.22"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[[bin]]
+name = "openscad-mcp-server"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
