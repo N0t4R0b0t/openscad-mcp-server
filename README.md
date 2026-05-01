@@ -1,6 +1,8 @@
 # OpenSCAD MCP Server
 
-A lightweight Model Context Protocol (MCP) server that enables Claude to generate and manage 3D models using OpenSCAD. Write parametric 3D models through natural language conversation, with real-time rendering and STL export for 3D printing.
+Describe a part in plain language — get back a print-ready STL. A lightweight MCP server that bridges Claude and OpenSCAD: write, preview, and export 3D models entirely through conversation.
+
+![Multi-angle render of a toddler-proof door knob cover](designs/doorknob_guard/design_grid_2x2.png)
 
 ## Features
 
@@ -130,7 +132,21 @@ export_stl from filename="my_part" to output_name="my_part_final"
 
 5. **Claude updates the code** iteratively
 
+   ![Claude iterating on the design](designs/doorknob_guard/Claude-convo.png)
+
 6. **When satisfied, use `export_stl`** to get your printable file
+
+![Printed door knob cover installed on a door](designs/doorknob_guard/Doorknob-print.jpg)
+
+## Sample Designs
+
+The `designs/` folder contains real designs created with this server:
+
+| Design | Description |
+|--------|-------------|
+| [`designs/doorknob_guard/`](designs/doorknob_guard/) | Toddler-proof door knob cover — parametric, prints in two parts |
+
+Each design includes the `.scad` source and preview renders from multiple angles.
 
 ## File Locations
 

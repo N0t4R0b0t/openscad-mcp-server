@@ -18,6 +18,12 @@ Cargo.lock
 *.png
 *.stl
 
+# Allow sample designs
+!designs/**/*.scad
+!designs/**/*.png
+!designs/**/*.jpg
+!designs/**/*.stl
+
 # Build artifacts
 /dist/
 /build/
