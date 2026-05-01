@@ -30,19 +30,23 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact: openscad-mcp-server
-            archive: openscad-mcp-server-linux-x86_64.tar.gz
+            archive_base: openscad-mcp-server-linux-x86_64
+            archive_ext: tar.gz
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact: openscad-mcp-server
-            archive: openscad-mcp-server-macos-x86_64.tar.gz
+            archive_base: openscad-mcp-server-macos-x86_64
+            archive_ext: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact: openscad-mcp-server
-            archive: openscad-mcp-server-macos-aarch64.tar.gz
+            archive_base: openscad-mcp-server-macos-aarch64
+            archive_ext: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: openscad-mcp-server.exe
-            archive: openscad-mcp-server-windows-x86_64.zip
+            archive_base: openscad-mcp-server-windows-x86_64
+            archive_ext: zip
 
     steps:
       - uses: actions/checkout@v4
@@ -61,12 +65,12 @@ jobs:
       - name: Package (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          tar -czf ${{ matrix.archive }} -C target/${{ matrix.target }}/release ${{ matrix.artifact }}
+          tar -czf ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} -C target/${{ matrix.target }}/release ${{ matrix.artifact }}
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.artifact }} -DestinationPath ${{ matrix.archive }}
+          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.artifact }} -DestinationPath ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }}
 
       - name: Upload to R2
         env:
@@ -74,7 +78,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
         run: |
-          aws s3 cp ${{ matrix.archive }} s3://${{ secrets.R2_BUCKET_NAME }}/${{ env.RELEASE_VERSION }}/${{ matrix.archive }} --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          aws s3 cp ${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} s3://${{ secrets.R2_BUCKET_NAME }}/${{ env.RELEASE_VERSION }}/${{ matrix.archive_base }}-${{ env.RELEASE_VERSION }}.${{ matrix.archive_ext }} --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
 
   release:
     name: Create GitHub Release
@@ -93,10 +97,10 @@ jobs:
 
             | Platform | Link |
             |----------|------|
-            | Linux x86_64 | [openscad-mcp-server-linux-x86_64.tar.gz](https://pub-${{ secrets.R2_BUCKET_NAME }}.${{ secrets.R2_ACCOUNT_ID }}.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-linux-x86_64.tar.gz) |
-            | macOS x86_64 | [openscad-mcp-server-macos-x86_64.tar.gz](https://pub-${{ secrets.R2_BUCKET_NAME }}.${{ secrets.R2_ACCOUNT_ID }}.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-x86_64.tar.gz) |
-            | macOS Apple Silicon | [openscad-mcp-server-macos-aarch64.tar.gz](https://pub-${{ secrets.R2_BUCKET_NAME }}.${{ secrets.R2_ACCOUNT_ID }}.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-aarch64.tar.gz) |
-            | Windows x86_64 | [openscad-mcp-server-windows-x86_64.zip](https://pub-${{ secrets.R2_BUCKET_NAME }}.${{ secrets.R2_ACCOUNT_ID }}.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-windows-x86_64.zip) |
+            | Linux x86_64 | [openscad-mcp-server-linux-x86_64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-linux-x86_64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | macOS x86_64 | [openscad-mcp-server-macos-x86_64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-x86_64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | macOS Apple Silicon | [openscad-mcp-server-macos-aarch64-${{ env.RELEASE_VERSION }}.tar.gz](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-macos-aarch64-${{ env.RELEASE_VERSION }}.tar.gz) |
+            | Windows x86_64 | [openscad-mcp-server-windows-x86_64-${{ env.RELEASE_VERSION }}.zip](https://pub-6e928baf24d547e493f5b6b534f8249c.r2.dev/${{ env.RELEASE_VERSION }}/openscad-mcp-server-windows-x86_64-${{ env.RELEASE_VERSION }}.zip) |
 
             > Artifacts are hosted on Cloudflare R2.
           generate_release_notes: true
