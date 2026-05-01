@@ -1,5 +1,7 @@
 # OpenSCAD MCP Server
 
+[![Latest Release](https://img.shields.io/github/v/release/N0t4R0b0t/openscad-mcp-server)](https://github.com/N0t4R0b0t/openscad-mcp-server/releases/latest)
+
 Describe a part in plain language — get back a print-ready STL. A lightweight MCP server that bridges Claude and OpenSCAD: write, preview, and export 3D models entirely through conversation.
 
 ![Multi-angle render of a toddler-proof door knob cover](designs/doorknob_guard/design_grid_2x2.png)
