@@ -73,9 +73,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
         run: |
-          aws s3 cp ${{ matrix.archive }} s3://${{ secrets.R2_BUCKET_NAME }}/${{ env.RELEASE_VERSION }}/${{ matrix.archive }} --endpoint-url $R2_ENDPOINT
+          aws s3 cp ${{ matrix.archive }} s3://${{ secrets.R2_BUCKET_NAME }}/${{ env.RELEASE_VERSION }}/${{ matrix.archive }} --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
 
   release:
     name: Create GitHub Release
