@@ -55,12 +55,12 @@ impl ServerHandler for OpenSCADMcpServer {
         }
     }
 
-    fn list_tools(
+    async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
-        async {
+    ) -> Result<ListToolsResult, ErrorData> {
+        {
             Ok(ListToolsResult {
                 tools: vec![
                     Self::make_tool(
@@ -178,12 +178,12 @@ impl ServerHandler for OpenSCADMcpServer {
         }
     }
 
-    fn call_tool(
+    async fn call_tool(
         &self,
         request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, ErrorData>> + Send + '_ {
-        async move {
+    ) -> Result<CallToolResult, ErrorData> {
+        {
             let args = request.arguments.unwrap_or_default();
             let manager = self.manager.lock().await;
 
